@@ -1,678 +1,449 @@
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Medical Lab Report Analyzer</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        /* Hide main container by default */
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 90vh;
-            max-height: 900px;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            flex-shrink: 0;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            font-weight: 300;
-        }
-
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-
-        .main-content {
-            padding: 40px;
-            overflow-y: auto;
-            flex-grow: 1;
-        }
-
-        .upload-section {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .upload-area {
-            border: 3px dashed #ddd;
-            border-radius: 10px;
-            padding: 40px;
-            background: #fafafa;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .upload-area:hover {
-            border-color: #4CAF50;
-            background: #f0fff0;
-        }
-
-        .upload-area.dragover {
-            border-color: #4CAF50;
-            background: #e8f5e8;
-            transform: scale(1.02);
-        }
-
-        .upload-icon {
-            font-size: 4em;
-            color: #ddd;
-            margin-bottom: 20px;
-        }
-
-        .upload-text {
-            font-size: 1.2em;
-            color: #666;
-            margin-bottom: 20px;
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            font-size: 1em;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-block;
-            text-decoration: none;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
-        }
-
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .chat-section {
-            display: none;
-            margin-top: 30px;
-        }
-
-        .file-info {
-            background: #e8f5e8;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #4CAF50;
-        }
-
-        .chat-container {
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            height: 400px;
-            overflow-y: auto;
-            padding: 20px;
-            background: #fafafa;
-            margin-bottom: 20px;
-        }
-
-        .message {
-            margin-bottom: 15px;
-            padding: 12px;
-            border-radius: 10px;
-            max-width: 80%;
-            word-wrap: break-word;
-        }
-
-        .user-message {
-            background: #4CAF50;
-            color: white;
-            margin-left: auto;
-            text-align: right;
-        }
-
-        .bot-message {
-            background: white;
-            border: 1px solid #ddd;
-            color: #333;
-        }
-
-        .bot-message h3,
-        .bot-message h4 {
-            color: #4CAF50;
-            margin: 10px 0 5px 0;
-        }
-
-        .bot-message ul,
-        .bot-message ol {
-            margin-left: 20px;
-            margin-top: 10px;
-        }
-
-        .bot-message li {
-            margin-bottom: 5px;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .question-input {
-            flex: 1;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 25px;
-            font-size: 1em;
-            outline: none;
-        }
-
-        .question-input:focus {
-            border-color: #4CAF50;
-            box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            color: #666;
-            font-style: italic;
-            padding: 20px;
-        }
-
-        .loading::after {
-            content: '...';
-            animation: dots 1.5s steps(5, end) infinite;
-        }
-
-        @keyframes dots {
-            0%,
-            20% {
-                content: '.';
-            }
-            40% {
-                content: '..';
-            }
-            60% {
-                content: '...';
-            }
-            80%,
-            100% {
-                content: '';
-            }
-        }
-
-        .error {
-            background: #ffebee;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            border-left: 4px solid #c62828;
-        }
-
-        .success {
-            background: #e8f5e8;
-            color: #2e7d32;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            border-left: 4px solid #4CAF50;
-        }
-
-        .sample-questions {
-            margin-top: 20px;
-        }
-
-        .sample-questions h3 {
-            color: #4CAF50;
-            margin-bottom: 10px;
-        }
-
-        .sample-question {
-            background: #f0f0f0;
-            padding: 8px 12px;
-            margin: 5px 0;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-            display: inline-block;
-            margin-right: 10px;
-            font-size: 0.9em;
-        }
-
-        .sample-question:hover {
-            background: #e0e0e0;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                margin: 10px;
-            }
-
-            .main-content {
-                padding: 20px;
-            }
-
-            .header h1 {
-                font-size: 2em;
-            }
-
-            .message {
-                max-width: 95%;
-            }
-        }
-
-        /* Popup overlay and container */
-        #popup-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.4);
-            display: none;
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        #popup-container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-            width: 100%;
-            max-width: 800px;
-            max-height: 90vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-        }
-
-        #popup-close-btn {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: transparent;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #4CAF50;
-            font-weight: bold;
-            line-height: 1;
-            user-select: none;
-        }
-
-        #popup-close-btn:hover {
-            color: #2e7d32;
-        }
-
-        /* Scrollbar for main content inside popup */
-        #popup-main-content {
-            padding: 40px;
-            overflow-y: auto;
-            flex-grow: 1;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Medical Lab Report Analyzer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+  />
+  <style>
+    /* Custom scrollbar for chat container */
+    #chatContainer::-webkit-scrollbar {
+      width: 8px;
+    }
+    #chatContainer::-webkit-scrollbar-thumb {
+      background-color: #4caf50;
+      border-radius: 4px;
+    }
+    #chatContainer::-webkit-scrollbar-track {
+      background: #f0f0f0;
+    }
+  </style>
 </head>
-<body>
-    <button id="open-popup-btn" class="btn" style="position: fixed; bottom: 20px; left: 20px; z-index: 10000;">
-        Open Medical Lab Report Analyzer
-    </button>
+<body class="bg-gradient-to-br from-indigo-500 via-purple-700 to-purple-900 min-h-screen p-5 font-sans">
+  <div
+    id="popup-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="popup-header-title"
+    aria-hidden="false"
+    class="fixed inset-0 bg-black bg-opacity-50 flex z-50 justify-center items-center p-4"
+  >
+    <div
+      id="popup-container"
+      class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
+    >
+      <button
+        id="popup-close-btn"
+        aria-label="Close popup"
+        class="absolute top-4 right-4 text-green-600 hover:text-green-800 text-3xl font-bold leading-none focus:outline-none"
+        onclick="closePopup()"
+      >
+        &times;
+      </button>
 
-    <div id="popup-overlay" role="dialog" aria-modal="true" aria-labelledby="popup-header-title" aria-hidden="true">
-        <div id="popup-container">
-            <button id="popup-close-btn" aria-label="Close popup">×</button>
-            <div class="header" id="popup-header">
-                <h1 id="popup-header-title">🏥 Medical Lab Report Analyzer</h1>
-                <p>Upload your lab report and get simple explanations of your results</p>
+      <header
+        id="popup-header"
+        class="bg-gradient-to-r from-green-600 to-green-700 text-white text-center p-8 flex flex-col items-center"
+      >
+        <h1
+          id="popup-header-title"
+          class="text-4xl sm:text-5xl font-light mb-2 select-none"
+        >
+          🏥 Medical Lab Report Analyzer
+        </h1>
+        <p class="text-lg opacity-90 max-w-xl">
+          Upload your lab report and get simple explanations of your results
+        </p>
+      </header>
+
+      <main
+        id="popup-main-content"
+        class="p-10 overflow-y-auto flex-grow space-y-8"
+      >
+        <section class="upload-section text-center space-y-6">
+          <div
+            id="uploadArea"
+            class="border-4 border-dashed border-gray-300 rounded-xl bg-gray-50 p-16 cursor-pointer relative transition-transform duration-300 hover:border-green-600 hover:bg-green-50 flex flex-col items-center justify-center select-none"
+            tabindex="0"
+            aria-label="Drop your PDF here or click to browse"
+          >
+            <div class="text-7xl text-gray-300 mb-6 select-none">📄</div>
+            <div class="text-lg text-gray-600 mb-6 font-semibold">
+              Drop your PDF here or click to browse
+              <br />
+              <small class="text-sm text-gray-400 font-normal">
+                Maximum file size: 16MB
+              </small>
             </div>
+            <input
+              type="file"
+              id="pdfFile"
+              class="hidden"
+              accept=".pdf"
+              aria-hidden="true"
+            />
+            <button
+              type="button"
+              onclick="document.getElementById('pdfFile').click()"
+              class="inline-block bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-8 rounded-full font-semibold shadow-md hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-4 focus:ring-green-400 transition"
+            >
+              Choose PDF File
+            </button>
+          </div>
 
-            <div class="main-content" id="popup-main-content">
-                <div class="upload-section">
-                    <div class="upload-area" id="uploadArea">
-                        <div class="upload-icon">📄</div>
-                        <div class="upload-text">
-                            <strong>Drop your PDF here or click to browse</strong><br />
-                            <small>Maximum file size: 16MB</small>
-                        </div>
-                        <input type="file" id="pdfFile" class="file-input" accept=".pdf" />
-                        <button class="btn" type="button" onclick="document.getElementById('pdfFile').click()">
-                            Choose PDF File
-                        </button>
-                    </div>
+          <div
+            id="uploadLoading"
+            class="text-gray-600 italic hidden select-none"
+            aria-live="polite"
+          >
+            Uploading and processing your PDF
+          </div>
+        </section>
 
-                    <div class="loading" id="uploadLoading">
-                        Uploading and processing your PDF
-                    </div>
-                </div>
+        <section
+          id="chatSection"
+          class="hidden flex flex-col space-y-6"
+          aria-live="polite"
+        >
+          <div
+            id="fileInfo"
+            class="bg-green-50 border-l-4 border-green-600 p-4 rounded-md text-green-800 text-sm sm:text-base"
+          ></div>
 
-                <div class="chat-section" id="chatSection">
-                    <div class="file-info" id="fileInfo"></div>
-
-                    <div class="chat-container" id="chatContainer">
-                        <div class="message bot-message">
-                            <strong>🤖 Medical Assistant:</strong><br />
-                            Hello! I've successfully processed your lab report. I can help explain:
-                            <ul>
-                                <li>What each test measures</li>
-                                <li>Normal ranges for lab values</li>
-                                <li>What high or low results might indicate</li>
-                                <li>Medical terms in simple language</li>
-                            </ul>
-                            <em
-                                >Please remember: I provide educational information only. Always consult your healthcare
-                                provider for medical advice.</em
-                            >
-                        </div>
-                    </div>
-
-                    <div class="input-group">
-                        <input
-                            type="text"
-                            id="questionInput"
-                            class="question-input"
-                            placeholder="Ask about your lab results..."
-                            onkeypress="handleKeyPress(event)"
-                            aria-label="Ask about your lab results"
-                        />
-                        <button class="btn" id="askBtn" type="button" onclick="askQuestion()">Ask</button>
-                    </div>
-
-                    <div class="sample-questions">
-                        <h3>Sample Questions:</h3>
-                        <div class="sample-question" tabindex="0" role="button" onclick="askSampleQuestion('What do my lab results mean overall?')" onkeypress="if(event.key==='Enter' || event.key===' ') askSampleQuestion('What do my lab results mean overall?')">
-                            What do my results mean?
-                        </div>
-                        <div class="sample-question" tabindex="0" role="button" onclick="askSampleQuestion('Are any of my values outside normal range?')" onkeypress="if(event.key==='Enter' || event.key===' ') askSampleQuestion('Are any of my values outside normal range?')">
-                            Any abnormal values?
-                        </div>
-                        <div class="sample-question" tabindex="0" role="button" onclick="askSampleQuestion('What should I be concerned about?')" onkeypress="if(event.key==='Enter' || event.key===' ') askSampleQuestion('What should I be concerned about?')">
-                            What should I watch?
-                        </div>
-                        <div class="sample-question" tabindex="0" role="button" onclick="askSampleQuestion('Explain the medical terms in my report')" onkeypress="if(event.key==='Enter' || event.key===' ') askSampleQuestion('Explain the medical terms in my report')">
-                            Explain medical terms
-                        </div>
-                    </div>
-
-                    <div class="loading" id="questionLoading">
-                        Analyzing your question
-                    </div>
-                </div>
+          <div
+            id="chatContainer"
+            class="border border-gray-300 rounded-xl bg-gray-50 p-6 h-96 overflow-y-auto space-y-4"
+            tabindex="0"
+            aria-label="Chat messages"
+          >
+            <div
+              class="message bot-message bg-white border border-gray-300 text-gray-800 rounded-xl p-4 max-w-[80%] break-words"
+            >
+              <strong>🤖 Medical Assistant:</strong><br />
+              Hello! I've successfully processed your lab report. I can help
+              explain:
+              <ul class="list-disc list-inside mt-2 space-y-1">
+                <li>What each test measures</li>
+                <li>Normal ranges for lab values</li>
+                <li>What high or low results might indicate</li>
+                <li>Medical terms in simple language</li>
+              </ul>
+              <em class="block mt-3 text-sm text-gray-600"
+                >Please remember: I provide educational information only. Always
+                consult your healthcare provider for medical advice.</em
+              >
             </div>
-        </div>
+          </div>
+
+          <div class="flex gap-4">
+            <input
+              type="text"
+              id="questionInput"
+              class="flex-grow border border-gray-300 rounded-full px-5 py-3 text-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600"
+              placeholder="Ask about your lab results..."
+              onkeypress="handleKeyPress(event)"
+              aria-label="Ask about your lab results"
+              autocomplete="off"
+            />
+            <button
+              id="askBtn"
+              type="button"
+              onclick="askQuestion()"
+              class="bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-full px-6 py-3 shadow-md hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-4 focus:ring-green-400 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              Ask
+            </button>
+          </div>
+
+          <div>
+            <h3 class="text-green-700 font-semibold mb-3 text-lg select-none">
+              Sample Questions:
+            </h3>
+            <div class="flex flex-wrap gap-3">
+              <div
+                tabindex="0"
+                role="button"
+                class="sample-question cursor-pointer bg-gray-200 hover:bg-gray-300 rounded-full px-4 py-2 text-sm select-none focus:outline-none focus:ring-2 focus:ring-green-600"
+                onclick="askSampleQuestion('What do my lab results mean overall?')"
+                onkeypress="if(event.key==='Enter' || event.key===' ') askSampleQuestion('What do my lab results mean overall?')"
+              >
+                What do my results mean?
+              </div>
+              <div
+                tabindex="0"
+                role="button"
+                class="sample-question cursor-pointer bg-gray-200 hover:bg-gray-300 rounded-full px-4 py-2 text-sm select-none focus:outline-none focus:ring-2 focus:ring-green-600"
+                onclick="askSampleQuestion('Are any of my values outside normal range?')"
+                onkeypress="if(event.key==='Enter' || event.key===' ') askSampleQuestion('Are any of my values outside normal range?')"
+              >
+                Any abnormal values?
+              </div>
+              <div
+                tabindex="0"
+                role="button"
+                class="sample-question cursor-pointer bg-gray-200 hover:bg-gray-300 rounded-full px-4 py-2 text-sm select-none focus:outline-none focus:ring-2 focus:ring-green-600"
+                onclick="askSampleQuestion('What should I be concerned about?')"
+                onkeypress="if(event.key==='Enter' || event.key===' ') askSampleQuestion('What should I be concerned about?')"
+              >
+                What should I watch?
+              </div>
+              <div
+                tabindex="0"
+                role="button"
+                class="sample-question cursor-pointer bg-gray-200 hover:bg-gray-300 rounded-full px-4 py-2 text-sm select-none focus:outline-none focus:ring-2 focus:ring-green-600"
+                onclick="askSampleQuestion('Explain the medical terms in my report')"
+                onkeypress="if(event.key==='Enter' || event.key===' ') askSampleQuestion('Explain the medical terms in my report')"
+              >
+                Explain medical terms
+              </div>
+            </div>
+          </div>
+
+          <div
+            id="questionLoading"
+            class="text-gray-600 italic hidden select-none text-center"
+            aria-live="polite"
+          >
+            Analyzing your question
+          </div>
+        </section>
+      </main>
     </div>
+  </div>
 
-    <script>
-        let currentSessionId = null;
+  <script>
+    let currentSessionId = null;
 
-        const openPopupBtn = document.getElementById('open-popup-btn');
-        const popupOverlay = document.getElementById('popup-overlay');
-        const popupCloseBtn = document.getElementById('popup-close-btn');
+    const popupOverlay = document.getElementById("popup-overlay");
 
-        // Elements inside popup
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('pdfFile');
-        const uploadLoading = document.getElementById('uploadLoading');
-        const chatSection = document.getElementById('chatSection');
-        const questionInput = document.getElementById('questionInput');
-        const askBtn = document.getElementById('askBtn');
-        const questionLoading = document.getElementById('questionLoading');
-        const chatContainer = document.getElementById('chatContainer');
-        const fileInfo = document.getElementById('fileInfo');
+    // Elements inside popup
+    const uploadArea = document.getElementById("uploadArea");
+    const fileInput = document.getElementById("pdfFile");
+    const uploadLoading = document.getElementById("uploadLoading");
+    const chatSection = document.getElementById("chatSection");
+    const questionInput = document.getElementById("questionInput");
+    const askBtn = document.getElementById("askBtn");
+    const questionLoading = document.getElementById("questionLoading");
+    const chatContainer = document.getElementById("chatContainer");
+    const fileInfo = document.getElementById("fileInfo");
 
-        // Open popup
-        openPopupBtn.addEventListener('click', () => {
-            popupOverlay.style.display = 'flex';
-            popupOverlay.setAttribute('aria-hidden', 'false');
-            // Reset states on open
-            resetPopup();
-            questionInput.focus();
-            document.body.style.overflow = 'hidden';
-        });
+    // Initialize popup visible on page load
+    window.addEventListener("load", () => {
+      resetPopup();
+      questionInput.focus();
+      document.body.style.overflow = "hidden";
+    });
 
-     
-        popupCloseBtn.addEventListener('click', closePopup);
-        popupOverlay.addEventListener('click', (e) => {
-            if (e.target === popupOverlay) {
-                closePopup();
-            }
-        });
+    function closePopup() {
+      popupOverlay.style.display = "none";
+      popupOverlay.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
 
-        function closePopup() {
-            popupOverlay.style.display = 'none';
-            popupOverlay.setAttribute('aria-hidden', 'true');
-            openPopupBtn.focus();
-            document.body.style.overflow = ''; 
-        }
-
-     
-        function resetPopup() {
-            currentSessionId = null;
-            uploadLoading.style.display = 'none';
-            uploadArea.style.display = 'block';
-            chatSection.style.display = 'none';
-            fileInfo.innerHTML = '';
-            chatContainer.innerHTML = `<div class="message bot-message">
+    function resetPopup() {
+      currentSessionId = null;
+      uploadLoading.classList.add("hidden");
+      uploadArea.classList.remove("hidden");
+      chatSection.classList.add("hidden");
+      fileInfo.innerHTML = "";
+      chatContainer.innerHTML = `<div class="message bot-message bg-white border border-gray-300 text-gray-800 rounded-xl p-4 max-w-[80%] break-words">
                 <strong>🤖 Medical Assistant:</strong><br>
                 Hello! I've successfully processed your lab report. I can help explain:
-                <ul>
+                <ul class="list-disc list-inside mt-2 space-y-1">
                     <li>What each test measures</li>
                     <li>Normal ranges for lab values</li>
                     <li>What high or low results might indicate</li>
                     <li>Medical terms in simple language</li>
                 </ul>
-                <em>Please remember: I provide educational information only. Always consult your healthcare provider for medical advice.</em>
+                <em class="block mt-3 text-sm text-gray-600">Please remember: I provide educational information only. Always consult your healthcare provider for medical advice.</em>
             </div>`;
-            questionInput.value = '';
-            askBtn.disabled = false;
-            questionLoading.style.display = 'none';
-        }
+      questionInput.value = "";
+      askBtn.disabled = false;
+      questionLoading.classList.add("hidden");
+    }
 
+    uploadArea.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      uploadArea.classList.add("scale-105", "border-green-600", "bg-green-50");
+    });
 
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
+    uploadArea.addEventListener("dragleave", () => {
+      uploadArea.classList.remove("scale-105", "border-green-600", "bg-green-50");
+    });
+
+    uploadArea.addEventListener("drop", (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove("scale-105", "border-green-600", "bg-green-50");
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleFileUpload(files[0]);
+      }
+    });
+
+    fileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        handleFileUpload(e.target.files[0]);
+      }
+    });
+
+    function handleFileUpload(file) {
+      if (file.type !== "application/pdf") {
+        showError("Please select a PDF file.");
+        return;
+      }
+
+      if (file.size > 16 * 1024 * 1024) {
+        showError("File size must be less than 16MB.");
+        return;
+      }
+
+      uploadLoading.classList.remove("hidden");
+      uploadArea.classList.add("hidden");
+
+      const formData = new FormData();
+      formData.append("pdf", file);
+
+      fetch("/upload", {
+        method: "POST",
+        body: formData,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          uploadLoading.classList.add("hidden");
+
+          if (data.error) {
+            showError(data.error);
+            uploadArea.classList.remove("hidden");
+          } else {
+            currentSessionId = data.session_id;
+            showSuccess("PDF uploaded successfully!");
+            showChat(data);
+          }
+        })
+        .catch((error) => {
+          uploadLoading.classList.add("hidden");
+          uploadArea.classList.remove("hidden");
+          showError("Upload failed: " + error.message);
         });
+    }
 
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFileUpload(files[0]);
-            }
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFileUpload(e.target.files[0]);
-            }
-        });
-
-        function handleFileUpload(file) {
-            if (file.type !== 'application/pdf') {
-                showError('Please select a PDF file.');
-                return;
-            }
-
-            if (file.size > 16 * 1024 * 1024) {
-                showError('File size must be less than 16MB.');
-                return;
-            }
-
-            uploadLoading.style.display = 'block';
-            uploadArea.style.display = 'none';
-
-            const formData = new FormData();
-            formData.append('pdf', file);
-
-            fetch('/upload', {
-                method: 'POST',
-                body: formData,
-            })
-                .then((response) => response.json())
-                .then((data) => {
-                    uploadLoading.style.display = 'none';
-
-                    if (data.error) {
-                        showError(data.error);
-                        uploadArea.style.display = 'block';
-                    } else {
-                        currentSessionId = data.session_id;
-                        showSuccess('PDF uploaded successfully!');
-                        showChat(data);
-                    }
-                })
-                .catch((error) => {
-                    uploadLoading.style.display = 'none';
-                    uploadArea.style.display = 'block';
-                    showError('Upload failed: ' + error.message);
-                });
-        }
-
-        function showChat(data) {
-            fileInfo.innerHTML = `
+    function showChat(data) {
+      fileInfo.innerHTML = `
                 <strong>📋 File:</strong> ${data.filename}<br>
                 <strong>📊 Content:</strong> ${data.text_length} characters extracted<br>
                 <strong>✅ Status:</strong> Ready for questions
             `;
-            chatSection.style.display = 'block';
-            questionInput.focus();
-        }
+      chatSection.classList.remove("hidden");
+      questionInput.focus();
+    }
 
-        function askQuestion() {
-            const question = questionInput.value.trim();
-            if (!question) return;
+    function askQuestion() {
+      const question = questionInput.value.trim();
+      if (!question) return;
 
-            if (!currentSessionId) {
-                showError('Please upload a PDF first.');
-                return;
-            }
+      if (!currentSessionId) {
+        showError("Please upload a PDF first.");
+        return;
+      }
 
-            addMessage(question, 'user');
-            questionInput.value = '';
+      addMessage(question, "user");
+      questionInput.value = "";
 
-            questionLoading.style.display = 'block';
-            askBtn.disabled = true;
+      questionLoading.classList.remove("hidden");
+      askBtn.disabled = true;
 
-            fetch('/ask', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    query: question,
-                    session_id: currentSessionId,
-                }),
-            })
-                .then((response) => response.json())
-                .then((data) => {
-                    questionLoading.style.display = 'none';
-                    askBtn.disabled = false;
+      fetch("/ask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: question,
+          session_id: currentSessionId,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          questionLoading.classList.add("hidden");
+          askBtn.disabled = false;
 
-                    if (data.error) {
-                        addMessage('❌ ' + data.error, 'bot');
-                    } else {
-                        addMessage(data.response, 'bot');
-                    }
-                })
-                .catch((error) => {
-                    questionLoading.style.display = 'none';
-                    askBtn.disabled = false;
-                    addMessage('❌ Error: ' + error.message, 'bot');
-                });
-        }
+          if (data.error) {
+            addMessage("❌ " + data.error, "bot");
+          } else {
+            addMessage(data.response, "bot");
+          }
+        })
+        .catch((error) => {
+          questionLoading.classList.add("hidden");
+          askBtn.disabled = false;
+          addMessage("❌ Error: " + error.message, "bot");
+        });
+    }
 
-        function addMessage(text, sender) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}-message`;
+    function addMessage(text, sender) {
+      const messageDiv = document.createElement("div");
+      messageDiv.className =
+        "message rounded-xl p-4 max-w-[80%] break-words " +
+        (sender === "user"
+          ? "bg-green-600 text-white ml-auto text-right"
+          : "bg-white border border-gray-300 text-gray-800");
 
-            if (sender === 'user') {
-                messageDiv.innerHTML = `<strong>You:</strong><br>${text}`;
-            } else {
-                const formattedText = text
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                    .replace(/\n\n/g, '<br><br>')
-                    .replace(/\n/g, '<br>');
-                messageDiv.innerHTML = `<strong>🤖 Medical Assistant:</strong><br>${formattedText}`;
-            }
+      if (sender === "user") {
+        messageDiv.innerHTML = `<strong>You:</strong><br>${text}`;
+      } else {
+        const formattedText = text
+          .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+          .replace(/\*(.*?)\*/g, "<em>$1</em>")
+          .replace(/\n\n/g, "<br><br>")
+          .replace(/\n/g, "<br>");
+        messageDiv.innerHTML = `<strong>🤖 Medical Assistant:</strong><br>${formattedText}`;
+      }
 
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
+      chatContainer.appendChild(messageDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
 
-        function askSampleQuestion(question) {
-            questionInput.value = question;
-            askQuestion();
-        }
+    function askSampleQuestion(question) {
+      questionInput.value = question;
+      askQuestion();
+    }
 
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                askQuestion();
-            }
-        }
+    function handleKeyPress(event) {
+      if (event.key === "Enter") {
+        askQuestion();
+      }
+    }
 
-        function showError(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error';
-            errorDiv.textContent = message;
-            const mainContent = document.getElementById('popup-main-content');
-            const uploadSection = mainContent.querySelector('.upload-section');
-            mainContent.insertBefore(errorDiv, uploadSection);
+    function showError(message) {
+      const errorDiv = document.createElement("div");
+      errorDiv.className =
+        "bg-red-100 border-l-4 border-red-600 text-red-700 p-4 rounded-md mb-4";
+      errorDiv.textContent = message;
+      const mainContent = document.getElementById("popup-main-content");
+      const uploadSection = mainContent.querySelector(".upload-section");
+      mainContent.insertBefore(errorDiv, uploadSection);
 
-            setTimeout(() => {
-                errorDiv.remove();
-            }, 5000);
-        }
+      setTimeout(() => {
+        errorDiv.remove();
+      }, 5000);
+    }
 
-        function showSuccess(message) {
-            const successDiv = document.createElement('div');
-            successDiv.className = 'success';
-            successDiv.textContent = message;
-            const mainContent = document.getElementById('popup-main-content');
-            const uploadSection = mainContent.querySelector('.upload-section');
-            mainContent.insertBefore(successDiv, uploadSection);
+    function showSuccess(message) {
+      const successDiv = document.createElement("div");
+      successDiv.className =
+        "bg-green-100 border-l-4 border-green-600 text-green-700 p-4 rounded-md mb-4";
+      successDiv.textContent = message;
+      const mainContent = document.getElementById("popup-main-content");
+      const uploadSection = mainContent.querySelector(".upload-section");
+      mainContent.insertBefore(successDiv, uploadSection);
 
-            setTimeout(() => {
-                successDiv.remove();
-            }, 3000);
-        }
-    </script>
+      setTimeout(() => {
+        successDiv.remove();
+      }, 3000);
+    }
+  </script>
 </body>
 </html>
