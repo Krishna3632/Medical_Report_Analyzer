@@ -1,10 +1,9 @@
 import os
 import pdfplumber
 import uuid
-import time
-import threading
+import io
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, render_template, session
+from flask import Flask, request, jsonify, render_template
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from phi.agent import Agent
@@ -15,22 +14,16 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-here')
-app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-
-# Create necessary directories
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs('templates', exist_ok=True)
 
 # Configuration
 ALLOWED_EXTENSIONS = {'pdf'}
 SESSION_TIMEOUT_MINUTES = 30
-CLEANUP_INTERVAL_MINUTES = 10
 
-# Session storage (in production, use Redis or database)
+# In-memory session storage (for serverless deployment)
 session_data = {}
-session_lock = threading.Lock()
 
+# Initialize AI Agent
 agent = Agent(
     model=Gemini(id="gemini-1.5-flash"),
     tools=[DuckDuckGo()],
@@ -51,11 +44,11 @@ def allowed_file(filename):
     """Check if file extension is allowed"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def extract_text_from_pdf(file_path):
-    """Extract text from PDF file using pdfplumber"""
+def extract_text_from_pdf_bytes(pdf_bytes):
+    """Extract text from PDF bytes using pdfplumber"""
     try:
         text = ""
-        with pdfplumber.open(file_path) as pdf:
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             for page in pdf.pages:
                 page_text = page.extract_text()
                 if page_text:
@@ -65,42 +58,20 @@ def extract_text_from_pdf(file_path):
     except Exception as e:
         raise Exception(f"Error extracting text from PDF: {str(e)}")
 
-def cleanup_old_sessions():
-    """Remove expired sessions and files"""
-    while True:
-        try:
-            current_time = datetime.now()
-            expired_sessions = []
-            
-            with session_lock:
-                for session_id, data in session_data.items():
-                    if current_time - data['timestamp'] > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
-                        expired_sessions.append(session_id)
-                
-                for session_id in expired_sessions:
-                    # Clean up file if exists
-                    if 'file_path' in session_data[session_id]:
-                        file_path = session_data[session_id]['file_path']
-                        try:
-                            if os.path.exists(file_path):
-                                os.remove(file_path)
-                        except:
-                            pass
-                    
-                    # Remove session data
-                    del session_data[session_id]
-            
-            if expired_sessions:
-                print(f"Cleaned up {len(expired_sessions)} expired sessions")
-            
-        except Exception as e:
-            print(f"Error in cleanup: {e}")
-        
-        time.sleep(CLEANUP_INTERVAL_MINUTES * 60)
-
-# Start cleanup thread
-cleanup_thread = threading.Thread(target=cleanup_old_sessions, daemon=True)
-cleanup_thread.start()
+def cleanup_expired_sessions():
+    """Remove expired sessions from memory"""
+    current_time = datetime.now()
+    expired_sessions = []
+    
+    for session_id, data in session_data.items():
+        if current_time - data['timestamp'] > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
+            expired_sessions.append(session_id)
+    
+    for session_id in expired_sessions:
+        del session_data[session_id]
+    
+    if expired_sessions:
+        print(f"Cleaned up {len(expired_sessions)} expired sessions")
 
 @app.route('/')
 def index():
@@ -111,7 +82,10 @@ def index():
 def upload_pdf():
     """Handle PDF upload"""
     try:
-       
+        # Clean up expired sessions before processing
+        cleanup_expired_sessions()
+        
+        # Check if file is present
         if 'pdf' not in request.files:
             return jsonify({"error": "No file provided"}), 400
         
@@ -119,46 +93,41 @@ def upload_pdf():
         if file.filename == '':
             return jsonify({"error": "No file selected"}), 400
         
-  
+        # Validate file type
         if not allowed_file(file.filename):
             return jsonify({"error": "Only PDF files are allowed"}), 400
         
-       
-        session_id = str(uuid.uuid4())
-        
-      
-        filename = f"{session_id}_{secure_filename(file.filename)}"
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
-        
-       
+        # Read file content into memory
         try:
-            text = extract_text_from_pdf(file_path)
+            file_content = file.read()
+            if not file_content:
+                return jsonify({"error": "File is empty"}), 400
         except Exception as e:
+            return jsonify({"error": f"Failed to read file: {str(e)}"}), 400
         
-            if os.path.exists(file_path):
-                os.remove(file_path)
+        # Extract text from PDF bytes
+        try:
+            text = extract_text_from_pdf_bytes(file_content)
+        except Exception as e:
             return jsonify({"error": f"Failed to process PDF: {str(e)}"}), 400
         
         if not text:
-      
-            if os.path.exists(file_path):
-                os.remove(file_path)
             return jsonify({"error": "No text could be extracted from the PDF"}), 400
         
-
-        with session_lock:
-            session_data[session_id] = {
-                'text': text,
-                'file_path': file_path,
-                'filename': file.filename,
-                'timestamp': datetime.now()
-            }
+        # Generate unique session ID
+        session_id = str(uuid.uuid4())
+        
+        # Store session data in memory
+        session_data[session_id] = {
+            'text': text,
+            'filename': secure_filename(file.filename),
+            'timestamp': datetime.now()
+        }
         
         return jsonify({
             "message": "PDF uploaded and processed successfully",
             "session_id": session_id,
-            "filename": file.filename,
+            "filename": secure_filename(file.filename),
             "text_length": len(text)
         })
     
@@ -169,6 +138,9 @@ def upload_pdf():
 def ask_question():
     """Handle question about uploaded report"""
     try:
+        # Clean up expired sessions
+        cleanup_expired_sessions()
+        
         data = request.get_json()
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
@@ -182,16 +154,15 @@ def ask_question():
         if not session_id:
             return jsonify({"error": "No session ID provided"}), 400
         
-
-        with session_lock:
-            if session_id not in session_data:
-                return jsonify({"error": "Session not found or expired. Please upload your PDF again."}), 400
-            
-            session_info = session_data[session_id]
-     
-            session_info['timestamp'] = datetime.now()
+        # Check if session exists
+        if session_id not in session_data:
+            return jsonify({"error": "Session not found or expired. Please upload your PDF again."}), 400
         
-      
+        session_info = session_data[session_id]
+        # Update timestamp
+        session_info['timestamp'] = datetime.now()
+        
+        # Prepare context for AI agent
         context = session_info['text']
         full_prompt = f"""Here is a medical lab report:
 
@@ -230,20 +201,23 @@ Please analyze this lab report and answer the user's question. Remember to:
 @app.route('/session/<session_id>')
 def get_session_info(session_id):
     """Get session information"""
-    with session_lock:
-        if session_id not in session_data:
-            return jsonify({"error": "Session not found"}), 404
-        
-        session_info = session_data[session_id]
-        return jsonify({
-            "filename": session_info['filename'],
-            "text_length": len(session_info['text']),
-            "upload_time": session_info['timestamp'].isoformat()
-        })
+    cleanup_expired_sessions()
+    
+    if session_id not in session_data:
+        return jsonify({"error": "Session not found"}), 404
+    
+    session_info = session_data[session_id]
+    return jsonify({
+        "filename": session_info['filename'],
+        "text_length": len(session_info['text']),
+        "upload_time": session_info['timestamp'].isoformat()
+    })
 
 @app.route('/health')
 def health_check():
     """Health check endpoint"""
+    cleanup_expired_sessions()
+    
     return jsonify({
         "status": "healthy",
         "active_sessions": len(session_data),
@@ -262,9 +236,9 @@ def not_found(e):
 def internal_error(e):
     return jsonify({"error": "Internal server error"}), 500
 
+# For Vercel deployment
 if __name__ == '__main__':
     print("Starting Medical Lab Report Analyzer...")
-    print(f"Upload folder: {app.config['UPLOAD_FOLDER']}")
     print(f"Max file size: {app.config['MAX_CONTENT_LENGTH'] / (1024*1024)}MB")
     print(f"Session timeout: {SESSION_TIMEOUT_MINUTES} minutes")
     app.run(debug=True, host='0.0.0.0', port=5000)
