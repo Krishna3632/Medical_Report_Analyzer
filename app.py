@@ -54,42 +54,178 @@ DOCTORS_DATABASE = {
 
 # Symptom-to-specialization mapping
 SYMPTOM_SPECIALIZATION_MAP = {
+    # Cardiology
     'chest pain': 'cardiology',
     'heart palpitations': 'cardiology',
     'shortness of breath': 'cardiology',
     'high blood pressure': 'cardiology',
+    'low blood pressure': 'cardiology',
+    'irregular heartbeat': 'cardiology',
+    'swelling in legs': 'cardiology',
+
+    # Neurology
     'headache': 'neurology',
     'dizziness': 'neurology',
     'seizure': 'neurology',
     'memory loss': 'neurology',
     'migraine': 'neurology',
+    'numbness': 'neurology',
+    'tingling sensation': 'neurology',
+    'difficulty speaking': 'neurology',
+    'vision problems': 'neurology',
+    'tremors': 'neurology',
+
+    # Gastroenterology
     'stomach pain': 'gastroenterology',
     'nausea': 'gastroenterology',
     'vomiting': 'gastroenterology',
     'diarrhea': 'gastroenterology',
     'constipation': 'gastroenterology',
+    'bloating': 'gastroenterology',
+    'acid reflux': 'gastroenterology',
+    'blood in stool': 'gastroenterology',
+    'loss of appetite': 'gastroenterology',
+
+    # Dermatology
     'skin rash': 'dermatology',
     'acne': 'dermatology',
     'itching': 'dermatology',
     'skin lesion': 'dermatology',
+    'dry skin': 'dermatology',
+    'eczema': 'dermatology',
+    'psoriasis': 'dermatology',
+    'hair loss': 'dermatology',
+    'nail discoloration': 'dermatology',
+
+    # Orthopedics
     'joint pain': 'orthopedics',
     'back pain': 'orthopedics',
     'fracture': 'orthopedics',
     'muscle pain': 'orthopedics',
+    'knee pain': 'orthopedics',
+    'shoulder pain': 'orthopedics',
+    'swollen joints': 'orthopedics',
+    'difficulty walking': 'orthopedics',
+
+    # Pulmonology
+    'chronic cough': 'pulmonology',
+    'wheezing': 'pulmonology',
+    'difficulty breathing': 'pulmonology',
+    'cough with blood': 'pulmonology',
+    'asthma symptoms': 'pulmonology',
+
+    # Endocrinology
+    'fatigue': 'endocrinology',
+    'weight gain': 'endocrinology',
+    'weight loss': 'endocrinology',
+    'excessive thirst': 'endocrinology',
+    'frequent urination': 'endocrinology',
+    'sweating': 'endocrinology',
+    'heat intolerance': 'endocrinology',
+
+    # Psychiatry
+    'depression': 'psychiatry',
+    'anxiety': 'psychiatry',
+    'insomnia': 'psychiatry',
+    'mood swings': 'psychiatry',
+    'hallucinations': 'psychiatry',
+    'panic attacks': 'psychiatry',
+
+    # Ophthalmology
+    'blurred vision': 'ophthalmology',
+    'eye pain': 'ophthalmology',
+    'red eyes': 'ophthalmology',
+    'watery eyes': 'ophthalmology',
+    'double vision': 'ophthalmology',
+
+    # ENT
+    'ear pain': 'ent',
+    'hearing loss': 'ent',
+    'sore throat': 'ent',
+    'nasal congestion': 'ent',
+    'runny nose': 'ent',
+    'loss of smell': 'ent',
+
+    # Urology
+    'painful urination': 'urology',
+    'blood in urine': 'urology',
+    'urinary incontinence': 'urology',
+    'frequent urination': 'urology',
+    'difficulty urinating': 'urology',
+
+    # Gynecology
+    'irregular periods': 'gynecology',
+    'pelvic pain': 'gynecology',
+    'vaginal discharge': 'gynecology',
+    'pain during intercourse': 'gynecology',
+    'pregnancy-related issues': 'gynecology',
+
+    # Pediatrics (for children)
+    'crying excessively': 'pediatrics',
+    'fever in child': 'pediatrics',
+    'rashes in child': 'pediatrics',
+    'delayed milestones': 'pediatrics',
 }
+
 
 # Symptom keywords for detection
 SYMPTOM_KEYWORDS = [
+    # General symptom verbs and descriptors
     'pain', 'ache', 'hurt', 'sore', 'tender', 'burning', 'stabbing', 'throbbing',
-    'headache', 'migraine', 'dizziness', 'nausea', 'vomiting', 'fever', 'chills',
-    'cough', 'sneeze', 'runny nose', 'congestion', 'shortness of breath',
-    'chest pain', 'heart palpitations', 'irregular heartbeat',
-    'stomach pain', 'abdominal pain', 'diarrhea', 'constipation', 'bloating',
-    'rash', 'itching', 'swelling', 'bruising', 'bleeding',
-    'fatigue', 'tired', 'weakness', 'exhaustion',
-    'anxiety', 'depression', 'stress', 'insomnia', 'sleep problems',
-    'joint pain', 'back pain', 'neck pain', 'muscle pain',
-    'experiencing', 'feeling', 'having', 'symptoms', 'sick', 'unwell'
+    'cramping', 'sharp pain', 'dull pain', 'pressure', 'tingling', 'numbness',
+    'swelling', 'inflammation', 'discomfort', 'bruising', 'sensitivity',
+
+    # Head & neurological
+    'headache', 'migraine', 'dizziness', 'lightheadedness', 'vertigo',
+    'seizure', 'tremors', 'memory loss', 'confusion', 'blurred vision',
+    'double vision', 'difficulty speaking', 'loss of balance', 'fainting',
+
+    # Digestive
+    'nausea', 'vomiting', 'stomach pain', 'abdominal pain', 'bloating',
+    'diarrhea', 'constipation', 'gas', 'indigestion', 'acid reflux',
+    'loss of appetite', 'heartburn', 'cramps', 'blood in stool',
+
+    # Respiratory
+    'cough', 'sneeze', 'runny nose', 'nasal congestion', 'shortness of breath',
+    'wheezing', 'chest pain', 'tight chest', 'difficulty breathing',
+    'coughing up blood', 'phlegm', 'hoarseness',
+
+    # Cardiovascular
+    'heart palpitations', 'irregular heartbeat', 'fast heartbeat', 'slow heartbeat',
+    'chest tightness', 'high blood pressure', 'low blood pressure',
+    'swelling in legs', 'cold hands and feet',
+
+    # Skin & allergy
+    'rash', 'itching', 'dry skin', 'flaky skin', 'redness', 'hives',
+    'skin peeling', 'eczema', 'acne', 'psoriasis', 'skin lesion',
+    'discoloration', 'lumps', 'boils', 'blisters',
+
+    # Musculoskeletal
+    'joint pain', 'back pain', 'neck pain', 'muscle pain', 'stiffness',
+    'limited mobility', 'cramps', 'spasms', 'bone pain', 'fracture',
+
+    # Mental health
+    'fatigue', 'tired', 'weakness', 'exhaustion', 'anxiety', 'depression',
+    'stress', 'mood swings', 'irritability', 'insomnia', 'sleep problems',
+    'hallucinations', 'panic attacks', 'feeling down', 'low energy',
+
+    # Urology & genital
+    'frequent urination', 'painful urination', 'burning while urinating',
+    'blood in urine', 'urinary incontinence', 'vaginal discharge',
+    'irregular periods', 'pelvic pain', 'pain during intercourse',
+
+    # Eye & ENT
+    'eye pain', 'red eyes', 'watery eyes', 'blurred vision', 'itchy eyes',
+    'ear pain', 'hearing loss', 'ringing in ears', 'sore throat',
+    'difficulty swallowing', 'loss of smell', 'loss of taste',
+
+    # Infection & immune response
+    'fever', 'chills', 'night sweats', 'body aches', 'swollen glands',
+
+    # Common phrases for NLP
+    'experiencing', 'feeling', 'having', 'suffering from', 'showing symptoms of',
+    'dealing with', 'complaining of', 'symptoms', 'signs', 'issues',
+    'problem', 'trouble', 'unwell', 'sick', 'not feeling well'
 ]
 
 # Initialize AI Agents
@@ -220,9 +356,16 @@ def analyze_symptoms_for_specialization(symptoms_text):
     else:
         return 'general'
 
+
+#Database Handle(work for Ankush)
 def get_doctors_by_specialization(specialization):
     """Get doctors from database by specialization"""
     return DOCTORS_DATABASE.get(specialization, DOCTORS_DATABASE['general'])
+
+#Storing data(work for Ankush)
+def store_data_for_past_reports(request_type,data,any_file):
+    # Store data for past reports
+    return ""
 
 @app.route('/')
 def index():
