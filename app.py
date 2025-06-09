@@ -2,8 +2,9 @@ import os
 import pdfplumber
 import uuid
 import io
+import re
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from phi.agent import Agent
@@ -23,19 +24,116 @@ SESSION_TIMEOUT_MINUTES = 30
 # In-memory session storage (for serverless deployment)
 session_data = {}
 
-# Initialize AI Agent
-agent = Agent(
+# Sample doctors database - Replace with your actual database
+DOCTORS_DATABASE = {
+    'cardiology': [
+        {'name': 'Dr. Sarah Johnson', 'specialization': 'Cardiology', 'location': 'New York', 'rating': 4.8},
+        {'name': 'Dr. Michael Chen', 'specialization': 'Cardiology', 'location': 'California', 'rating': 4.9},
+    ],
+    'neurology': [
+        {'name': 'Dr. Emma Davis', 'specialization': 'Neurology', 'location': 'Texas', 'rating': 4.7},
+        {'name': 'Dr. James Wilson', 'specialization': 'Neurology', 'location': 'Florida', 'rating': 4.6},
+    ],
+    'gastroenterology': [
+        {'name': 'Dr. Lisa Rodriguez', 'specialization': 'Gastroenterology', 'location': 'Chicago', 'rating': 4.8},
+        {'name': 'Dr. David Kim', 'specialization': 'Gastroenterology', 'location': 'Seattle', 'rating': 4.7},
+    ],
+    'dermatology': [
+        {'name': 'Dr. Amanda Taylor', 'specialization': 'Dermatology', 'location': 'Miami', 'rating': 4.9},
+        {'name': 'Dr. Robert Brown', 'specialization': 'Dermatology', 'location': 'Denver', 'rating': 4.6},
+    ],
+    'orthopedics': [
+        {'name': 'Dr. Kevin Martinez', 'specialization': 'Orthopedics', 'location': 'Phoenix', 'rating': 4.8},
+        {'name': 'Dr. Jennifer Lee', 'specialization': 'Orthopedics', 'location': 'Boston', 'rating': 4.7},
+    ],
+    'general': [
+        {'name': 'Dr. Mary Anderson', 'specialization': 'General Medicine', 'location': 'Atlanta', 'rating': 4.5},
+        {'name': 'Dr. Thomas Garcia', 'specialization': 'General Medicine', 'location': 'Portland', 'rating': 4.6},
+    ]
+}
+
+# Symptom-to-specialization mapping
+SYMPTOM_SPECIALIZATION_MAP = {
+    'chest pain': 'cardiology',
+    'heart palpitations': 'cardiology',
+    'shortness of breath': 'cardiology',
+    'high blood pressure': 'cardiology',
+    'headache': 'neurology',
+    'dizziness': 'neurology',
+    'seizure': 'neurology',
+    'memory loss': 'neurology',
+    'migraine': 'neurology',
+    'stomach pain': 'gastroenterology',
+    'nausea': 'gastroenterology',
+    'vomiting': 'gastroenterology',
+    'diarrhea': 'gastroenterology',
+    'constipation': 'gastroenterology',
+    'skin rash': 'dermatology',
+    'acne': 'dermatology',
+    'itching': 'dermatology',
+    'skin lesion': 'dermatology',
+    'joint pain': 'orthopedics',
+    'back pain': 'orthopedics',
+    'fracture': 'orthopedics',
+    'muscle pain': 'orthopedics',
+}
+
+# Symptom keywords for detection
+SYMPTOM_KEYWORDS = [
+    'pain', 'ache', 'hurt', 'sore', 'tender', 'burning', 'stabbing', 'throbbing',
+    'headache', 'migraine', 'dizziness', 'nausea', 'vomiting', 'fever', 'chills',
+    'cough', 'sneeze', 'runny nose', 'congestion', 'shortness of breath',
+    'chest pain', 'heart palpitations', 'irregular heartbeat',
+    'stomach pain', 'abdominal pain', 'diarrhea', 'constipation', 'bloating',
+    'rash', 'itching', 'swelling', 'bruising', 'bleeding',
+    'fatigue', 'tired', 'weakness', 'exhaustion',
+    'anxiety', 'depression', 'stress', 'insomnia', 'sleep problems',
+    'joint pain', 'back pain', 'neck pain', 'muscle pain',
+    'experiencing', 'feeling', 'having', 'symptoms', 'sick', 'unwell'
+]
+
+# Initialize AI Agents
+lab_agent = Agent(
     model=Gemini(id="gemini-1.5-flash"),
     tools=[DuckDuckGo()],
-    description="You are a helpful medical assistant that explains lab test reports and terms in simple language. Never give diagnoses or medication advice.",
+    description="Medical assistant for lab report analysis",
     instructions=[
-        "When a user asks about a medical term, explain it simply.",
-        "If lab values are given (e.g., Hemoglobin 9.2 g/dL), explain what the normal range is and if it's high/low.",
-        "Be reassuring and educational. Suggest consulting a doctor for accurate health evaluation.",
-        "Avoid giving prescriptions or critical decisions.",
-        "If the user pastes an entire report, break down each test and explain its meaning and status.",
-        "Always explain in a simple language.",
-        "Use bullet points and clear formatting for better readability."
+        "Explain lab results in simple language",
+        "Mention normal ranges for lab values",
+        "Be educational and reassuring",
+        "Always recommend consulting healthcare professionals",
+        "Never provide specific diagnoses or treatments",
+        "Use bullet points for clarity"
+    ],
+    markdown=True
+)
+
+general_agent = Agent(
+    model=Gemini(id="gemini-1.5-flash"),
+    tools=[DuckDuckGo()],
+    description="Medical assistant for general health questions",
+    instructions=[
+        "Provide educational health information",
+        "Explain medical concepts clearly",
+        "Be reassuring and informative",
+        "Always recommend professional consultation",
+        "Stay within educational bounds",
+        "Use clear formatting"
+    ],
+    markdown=True
+)
+
+symptoms_agent = Agent(
+    model=Gemini(id="gemini-1.5-flash"),
+    tools=[DuckDuckGo()],
+    description="Medical assistant for symptom analysis",
+    instructions=[
+        "Analyze symptoms educationally",
+        "Suggest possible causes without diagnosing",
+        "Recommend when to seek immediate care",
+        "Provide general self-care tips",
+        "Always emphasize professional evaluation",
+        "Include medical disclaimers"
     ],
     markdown=True
 )
@@ -53,7 +151,6 @@ def extract_text_from_pdf_bytes(pdf_bytes):
                 page_text = page.extract_text()
                 if page_text:
                     text += page_text + "\n"
-        
         return text.strip()
     except Exception as e:
         raise Exception(f"Error extracting text from PDF: {str(e)}")
@@ -73,19 +170,71 @@ def cleanup_expired_sessions():
     if expired_sessions:
         print(f"Cleaned up {len(expired_sessions)} expired sessions")
 
+def detect_query_type(query):
+    """Detect what type of query this is based on content"""
+    query_lower = query.lower()
+    
+    # Check for file upload requests
+    upload_keywords = ['upload', 'pdf', 'report', 'lab report', 'test results', 'file']
+    if any(keyword in query_lower for keyword in upload_keywords):
+        return 'upload_request'
+    
+    # Check for symptom descriptions
+    symptom_count = sum(1 for keyword in SYMPTOM_KEYWORDS if keyword in query_lower)
+    
+    # Symptom patterns
+    symptom_patterns = [
+        r'i have|i am having|i feel|i am feeling|experiencing',
+        r'my \w+ (hurt|pain|ache|sore)',
+        r'(pain|ache|hurt) in my',
+        r'i have been (sick|unwell|feeling)',
+        r'symptoms include|symptoms are',
+        r'for \d+ days?|for \d+ weeks?|since yesterday|since last week'
+    ]
+    
+    pattern_matches = sum(1 for pattern in symptom_patterns if re.search(pattern, query_lower))
+    
+    # If high symptom keyword count or pattern matches, likely symptoms
+    if symptom_count >= 2 or pattern_matches >= 1:
+        return 'symptoms'
+    
+    # Default to general medical question
+    return 'general'
+
+def analyze_symptoms_for_specialization(symptoms_text):
+    """Analyze symptoms to determine appropriate medical specialization"""
+    symptoms_lower = symptoms_text.lower()
+    
+    # Count matches for each specialization
+    specialization_scores = {}
+    
+    for symptom, specialization in SYMPTOM_SPECIALIZATION_MAP.items():
+        if symptom in symptoms_lower:
+            if specialization not in specialization_scores:
+                specialization_scores[specialization] = 0
+            specialization_scores[specialization] += 1
+    
+    # Return the specialization with highest score, or general if no matches
+    if specialization_scores:
+        return max(specialization_scores, key=specialization_scores.get)
+    else:
+        return 'general'
+
+def get_doctors_by_specialization(specialization):
+    """Get doctors from database by specialization"""
+    return DOCTORS_DATABASE.get(specialization, DOCTORS_DATABASE['general'])
+
 @app.route('/')
 def index():
-    """Main page"""
+    """Serve the main HTML page"""
     return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
 def upload_pdf():
     """Handle PDF upload"""
     try:
-        # Clean up expired sessions before processing
         cleanup_expired_sessions()
         
-        # Check if file is present
         if 'pdf' not in request.files:
             return jsonify({"error": "No file provided"}), 400
         
@@ -93,11 +242,9 @@ def upload_pdf():
         if file.filename == '':
             return jsonify({"error": "No file selected"}), 400
         
-        # Validate file type
         if not allowed_file(file.filename):
             return jsonify({"error": "Only PDF files are allowed"}), 400
         
-        # Read file content into memory
         try:
             file_content = file.read()
             if not file_content:
@@ -105,7 +252,6 @@ def upload_pdf():
         except Exception as e:
             return jsonify({"error": f"Failed to read file: {str(e)}"}), 400
         
-        # Extract text from PDF bytes
         try:
             text = extract_text_from_pdf_bytes(file_content)
         except Exception as e:
@@ -114,10 +260,8 @@ def upload_pdf():
         if not text:
             return jsonify({"error": "No text could be extracted from the PDF"}), 400
         
-        # Generate unique session ID
         session_id = str(uuid.uuid4())
         
-        # Store session data in memory
         session_data[session_id] = {
             'text': text,
             'filename': secure_filename(file.filename),
@@ -134,11 +278,150 @@ def upload_pdf():
     except Exception as e:
         return jsonify({"error": f"Upload failed: {str(e)}"}), 500
 
+@app.route('/smart_query', methods=['POST'])
+def smart_query():
+    """Handle smart query that determines the type automatically"""
+    try:
+        cleanup_expired_sessions()
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+        
+        query = data.get("query", "").strip()
+        session_id = data.get("session_id", "").strip()
+        
+        if not query:
+            return jsonify({"error": "No question provided"}), 400
+        
+        # Detect query type
+        query_type = detect_query_type(query)
+        
+        # Handle upload request
+        if query_type == 'upload_request':
+            return jsonify({
+                "response": "To upload a lab report, please use the upload button above or drag and drop a PDF file. I'll be able to analyze your lab results once you upload the file.",
+                "query_type": "upload_request",
+                "action_needed": "upload_file"
+            })
+        
+        # Handle lab report questions if session exists
+        if session_id and session_id in session_data:
+            session_info = session_data[session_id]
+            session_info['timestamp'] = datetime.now()
+            
+            context = session_info['text']
+            full_prompt = f"""Here is a medical lab report:
+
+{context}
+
+User's question: {query}
+
+Please analyze this lab report and answer the user's question. Remember to:
+- Explain medical terms in simple language
+- Mention normal ranges when discussing lab values
+- Be reassuring and educational
+- Always recommend consulting with a healthcare provider
+- Never provide specific medical diagnoses or treatment recommendations"""
+            
+            try:
+                response = ""
+                for chunk in lab_agent.run(full_prompt, stream=True):
+                    response += chunk.content
+                
+                if not response.strip():
+                    response = "I apologize, but I couldn't generate a response. Please try rephrasing your question."
+            
+            except Exception as e:
+                print(f"Agent error: {e}")
+                response = "I'm sorry, but I encountered an error while processing your question. Please try again."
+            
+            return jsonify({
+                "response": response,
+                "query_type": "lab_report",
+                "filename": session_info['filename']
+            })
+        
+        # Handle symptoms
+        elif query_type == 'symptoms':
+            # Analyze symptoms to determine specialization
+            specialization = analyze_symptoms_for_specialization(query)
+            
+            # Get doctors for the specialization
+            recommended_doctors = get_doctors_by_specialization(specialization)
+            
+            # Prepare prompt for symptoms analysis
+            full_prompt = f"""User is experiencing these symptoms: {query}
+
+Please provide educational information about these symptoms. Remember to:
+- Explain what these symptoms might indicate in general terms
+- Mention possible common causes (without diagnosing)
+- Suggest when to seek immediate medical attention (red flags)
+- Provide general self-care tips where appropriate
+- Always emphasize that symptoms require professional medical evaluation
+- Never provide specific diagnoses or treatment recommendations
+- Be reassuring while being informative
+- Use bullet points and clear formatting for better readability
+- Include disclaimer about not replacing professional medical advice"""
+            
+            try:
+                response = ""
+                for chunk in symptoms_agent.run(full_prompt, stream=True):
+                    response += chunk.content
+                
+                if not response.strip():
+                    response = "I apologize, but I couldn't generate a response. Please try describing your symptoms differently."
+            
+            except Exception as e:
+                print(f"Symptoms agent error: {e}")
+                response = "I'm sorry, but I encountered an error while analyzing your symptoms. Please try again."
+            
+            return jsonify({
+                "response": response,
+                "query_type": "symptoms",
+                "symptoms": query,
+                "specialization": specialization,
+                "recommended_doctors": recommended_doctors[:3]  # Return top 3 doctors
+            })
+        
+        # Handle general questions
+        else:
+            full_prompt = f"""User's general medical question: {query}
+
+Please provide helpful, educational information about this health topic. Remember to:
+- Explain medical terms and concepts in simple language
+- Provide accurate, general health information
+- Be reassuring and educational
+- Always emphasize the importance of consulting healthcare professionals
+- Never provide specific diagnoses, prescriptions, or critical medical decisions
+- Stay within the bounds of general health education
+- Use bullet points and clear formatting for better readability"""
+            
+            try:
+                response = ""
+                for chunk in general_agent.run(full_prompt, stream=True):
+                    response += chunk.content
+                
+                if not response.strip():
+                    response = "I apologize, but I couldn't generate a response. Please try rephrasing your question."
+            
+            except Exception as e:
+                print(f"General agent error: {e}")
+                response = "I'm sorry, but I encountered an error while processing your question. Please try again."
+            
+            return jsonify({
+                "response": response,
+                "query_type": "general"
+            })
+    
+    except Exception as e:
+        return jsonify({"error": f"Failed to process question: {str(e)}"}), 500
+
+# Keep existing endpoints for backward compatibility
 @app.route('/ask', methods=['POST'])
 def ask_question():
     """Handle question about uploaded report"""
     try:
-        # Clean up expired sessions
         cleanup_expired_sessions()
         
         data = request.get_json()
@@ -154,15 +437,12 @@ def ask_question():
         if not session_id:
             return jsonify({"error": "No session ID provided"}), 400
         
-        # Check if session exists
         if session_id not in session_data:
             return jsonify({"error": "Session not found or expired. Please upload your PDF again."}), 400
         
         session_info = session_data[session_id]
-        # Update timestamp
         session_info['timestamp'] = datetime.now()
         
-        # Prepare context for AI agent
         context = session_info['text']
         full_prompt = f"""Here is a medical lab report:
 
@@ -177,10 +457,9 @@ Please analyze this lab report and answer the user's question. Remember to:
 - Always recommend consulting with a healthcare provider
 - Never provide specific medical diagnoses or treatment recommendations"""
         
-        # Get response from AI agent
         try:
             response = ""
-            for chunk in agent.run(full_prompt, stream=True):
+            for chunk in lab_agent.run(full_prompt, stream=True):
                 response += chunk.content
             
             if not response.strip():
@@ -197,6 +476,104 @@ Please analyze this lab report and answer the user's question. Remember to:
     
     except Exception as e:
         return jsonify({"error": f"Failed to process question: {str(e)}"}), 500
+
+@app.route('/ask_general', methods=['POST'])
+def ask_general_question():
+    """Handle general medical questions"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+        
+        query = data.get("query", "").strip()
+        
+        if not query:
+            return jsonify({"error": "No question provided"}), 400
+        
+        full_prompt = f"""User's general medical question: {query}
+
+Please provide helpful, educational information about this health topic. Remember to:
+- Explain medical terms and concepts in simple language
+- Provide accurate, general health information
+- Be reassuring and educational
+- Always emphasize the importance of consulting healthcare professionals
+- Never provide specific diagnoses, prescriptions, or critical medical decisions
+- Stay within the bounds of general health education
+- Use bullet points and clear formatting for better readability"""
+        
+        try:
+            response = ""
+            for chunk in general_agent.run(full_prompt, stream=True):
+                response += chunk.content
+            
+            if not response.strip():
+                response = "I apologize, but I couldn't generate a response. Please try rephrasing your question."
+        
+        except Exception as e:
+            print(f"General agent error: {e}")
+            response = "I'm sorry, but I encountered an error while processing your question. Please try again."
+        
+        return jsonify({
+            "response": response
+        })
+    
+    except Exception as e:
+        return jsonify({"error": f"Failed to process question: {str(e)}"}), 500
+
+@app.route('/symptoms', methods=['POST'])
+def analyze_symptoms():
+    """Handle symptoms analysis and doctor recommendations"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+        
+        symptoms = data.get("symptoms", "").strip()
+        
+        if not symptoms:
+            return jsonify({"error": "No symptoms provided"}), 400
+        
+        # Analyze symptoms to determine specialization
+        specialization = analyze_symptoms_for_specialization(symptoms)
+        
+        # Get doctors for the specialization
+        recommended_doctors = get_doctors_by_specialization(specialization)
+        
+        # Prepare prompt for symptoms analysis
+        full_prompt = f"""User is experiencing these symptoms: {symptoms}
+
+Please provide educational information about these symptoms. Remember to:
+- Explain what these symptoms might indicate in general terms
+- Mention possible common causes (without diagnosing)
+- Suggest when to seek immediate medical attention (red flags)
+- Provide general self-care tips where appropriate
+- Always emphasize that symptoms require professional medical evaluation
+- Never provide specific diagnoses or treatment recommendations
+- Be reassuring while being informative
+- Use bullet points and clear formatting for better readability
+- Include disclaimer about not replacing professional medical advice"""
+        
+        try:
+            response = ""
+            for chunk in symptoms_agent.run(full_prompt, stream=True):
+                response += chunk.content
+            
+            if not response.strip():
+                response = "I apologize, but I couldn't generate a response. Please try describing your symptoms differently."
+        
+        except Exception as e:
+            print(f"Symptoms agent error: {e}")
+            response = "I'm sorry, but I encountered an error while analyzing your symptoms. Please try again."
+        
+        return jsonify({
+            "response": response,
+            "symptoms": symptoms,
+            "specialization": specialization,
+            "recommended_doctors": recommended_doctors[:3]  # Return top 3 doctors
+        })
+    
+    except Exception as e:
+        return jsonify({"error": f"Failed to analyze symptoms: {str(e)}"}), 500
 
 @app.route('/session/<session_id>')
 def get_session_info(session_id):
@@ -224,6 +601,7 @@ def health_check():
         "timestamp": datetime.now().isoformat()
     })
 
+# Error handlers
 @app.errorhandler(413)
 def too_large(e):
     return jsonify({"error": "File too large. Maximum size is 16MB."}), 413
@@ -236,9 +614,16 @@ def not_found(e):
 def internal_error(e):
     return jsonify({"error": "Internal server error"}), 500
 
-# For Vercel deployment
 if __name__ == '__main__':
-    print("Starting Medical Lab Report Analyzer...")
-    print(f"Max file size: {app.config['MAX_CONTENT_LENGTH'] / (1024*1024)}MB")
-    print(f"Session timeout: {SESSION_TIMEOUT_MINUTES} minutes")
+    print("🏥 Starting Enhanced Medical Assistant Server...")
+    print(f"📁 Max file size: {app.config['MAX_CONTENT_LENGTH'] / (1024*1024)}MB")
+    print(f"⏰ Session timeout: {SESSION_TIMEOUT_MINUTES} minutes")
+    print("🔗 Available endpoints:")
+    print("   - POST /upload - Upload PDF lab reports")
+    print("   - POST /smart_query - Smart query handler (auto-detects intent)")
+    print("   - POST /ask - Ask questions about uploaded reports")
+    print("   - POST /ask_general - Ask general medical questions")
+    print("   - POST /symptoms - Analyze symptoms and get doctor recommendations")
+    print("   - GET /health - Health check")
+    print("🚀 Server starting on http://localhost:5000")
     app.run(debug=True, host='0.0.0.0', port=5000)
