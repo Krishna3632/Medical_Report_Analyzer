@@ -11,7 +11,7 @@ from phi.agent import Agent
 from phi.model.google import Gemini
 from phi.tools.duckduckgo import DuckDuckGo
 import asyncio
-from connection import fetch_doctors_with_user
+from backend.connection import fetch_doctors_with_user
 from data import SYMPTOM_KEYWORDS,SYMPTOM_SPECIALIZATION_MAP
 load_dotenv()
 
