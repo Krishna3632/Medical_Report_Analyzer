@@ -4,7 +4,7 @@ import uuid
 import io
 import re
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from phi.agent import Agent
