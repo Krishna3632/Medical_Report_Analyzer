@@ -779,17 +779,4 @@ def internal_error(e):
     return jsonify({"error": "Internal server error"}), 500
 
 if __name__ == '__main__':
-    print("🏥 Starting Enhanced Medical Assistant Server...")
-    print(f"📁 Max file size: {app.config['MAX_CONTENT_LENGTH'] / (1024*1024)}MB")
-    print(f"⏰ Session timeout: {SESSION_TIMEOUT_MINUTES} minutes")
-    print("🔗 Available endpoints:")
-    print("   - POST /upload - Upload PDF lab reports")
-    print("   - POST /smart_query - Smart query handler (auto-detects intent)")
-    print("   - POST /ask - Ask questions about uploaded reports")
-    print("   - POST /ask_general - Ask general medical questions")
-    print("   - POST /symptoms - Analyze symptoms and get doctor recommendations")
-    print("   - GET /health - Health check")
-    print("🚀 Server starting on http://localhost:5000")
-
     app.run(debug=True, host='0.0.0.0', port=5000)
-    # app.run(debug=True, host='0.0.0.0', port=5000)
