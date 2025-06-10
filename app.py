@@ -11,7 +11,7 @@ from phi.agent import Agent
 from phi.model.google import Gemini
 from phi.tools.duckduckgo import DuckDuckGo
 import asyncio
-from backend.connection import fetch_doctors_with_user
+from connection import fetch_doctors_with_user
 from data import SYMPTOM_KEYWORDS,SYMPTOM_SPECIALIZATION_MAP
 load_dotenv()
 
@@ -518,7 +518,7 @@ Please provide educational information about these symptoms. Remember to:
 - Be reassuring while being informative
 - Use bullet points and clear formatting for better readability
 - Include disclaimer about not replacing professional medical advice"""
-        
+
         try:
             response = ""
             for chunk in symptoms_agent.run(full_prompt, stream=True):
