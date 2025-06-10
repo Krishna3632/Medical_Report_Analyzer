@@ -26,32 +26,7 @@ SESSION_TIMEOUT_MINUTES = 30
 session_data = {}
 
 # Sample doctors database - Replace with your actual database
-DOCTORS_DATABASE = {
-    'cardiology': [
-        {'name': 'Dr. Sarah Johnson', 'specialization': 'Cardiology', 'location': 'New York', 'rating': 4.8},
-        {'name': 'Dr. Michael Chen', 'specialization': 'Cardiology', 'location': 'California', 'rating': 4.9},
-    ],
-    'neurology': [
-        {'name': 'Dr. Emma Davis', 'specialization': 'Neurology', 'location': 'Texas', 'rating': 4.7},
-        {'name': 'Dr. James Wilson', 'specialization': 'Neurology', 'location': 'Florida', 'rating': 4.6},
-    ],
-    'gastroenterology': [
-        {'name': 'Dr. Lisa Rodriguez', 'specialization': 'Gastroenterology', 'location': 'Chicago', 'rating': 4.8},
-        {'name': 'Dr. David Kim', 'specialization': 'Gastroenterology', 'location': 'Seattle', 'rating': 4.7},
-    ],
-    'dermatology': [
-        {'name': 'Dr. Amanda Taylor', 'specialization': 'Dermatology', 'location': 'Miami', 'rating': 4.9},
-        {'name': 'Dr. Robert Brown', 'specialization': 'Dermatology', 'location': 'Denver', 'rating': 4.6},
-    ],
-    'orthopedics': [
-        {'name': 'Dr. Kevin Martinez', 'specialization': 'Orthopedics', 'location': 'Phoenix', 'rating': 4.8},
-        {'name': 'Dr. Jennifer Lee', 'specialization': 'Orthopedics', 'location': 'Boston', 'rating': 4.7},
-    ],
-    'general': [
-        {'name': 'Dr. Mary Anderson', 'specialization': 'General Medicine', 'location': 'Atlanta', 'rating': 4.5},
-        {'name': 'Dr. Thomas Garcia', 'specialization': 'General Medicine', 'location': 'Portland', 'rating': 4.6},
-    ]
-}
+
 
 # Symptom-to-specialization mapping
 SYMPTOM_SPECIALIZATION_MAP = {
@@ -360,27 +335,27 @@ def analyze_symptoms_for_specialization(symptoms_text):
 
 def get_doctors_by_specialization(specialization):
     data = asyncio.run(fetch_doctors_with_user())
-    print(data)
+    # print(data)
     ans = []
 
-    print(f"Looking for specialization: {specialization.lower()}")
+    # print(f"Looking for specialization: {specialization.lower()}")
 
     for doc in data:
         specializations = doc.get('Specialization', [])
-        print(f"Doctor: {doc['name']} - Specializations: {specializations}")
+        # print(f"Doctor: {doc['name']} - Specializations: {specializations}")
 
         # Lowercase conversion for matching
         specializations_lower = [spec.lower() for spec in specializations]
-        print(f"Converted Specializations: {specializations_lower}")
+        # print(f"Converted Specializations: {specializations_lower}")
 
         if specialization.lower() in specializations_lower:
-            print(f"Matched Doctor: {doc['name']}")
+            # print(f"Matched Doctor: {doc['name']}")
             ans.append({
                 "Doctor Name": doc["name"],
                 "Rating": doc["rating"]
             })
 
-    print("Final matched doctors:", ans)
+    # print("Final matched doctors:", ans)
     return ans
 
 #Storing data(work for Ankush)
