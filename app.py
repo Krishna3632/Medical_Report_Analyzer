@@ -10,7 +10,8 @@ from dotenv import load_dotenv
 from phi.agent import Agent
 from phi.model.google import Gemini
 from phi.tools.duckduckgo import DuckDuckGo
-
+import asyncio
+from connection import fetch_doctors_with_user
 load_dotenv()
 
 app = Flask(__name__)
@@ -55,117 +56,118 @@ DOCTORS_DATABASE = {
 # Symptom-to-specialization mapping
 SYMPTOM_SPECIALIZATION_MAP = {
     # Cardiology
-    'chest pain': 'cardiology',
-    'heart palpitations': 'cardiology',
-    'shortness of breath': 'cardiology',
-    'high blood pressure': 'cardiology',
-    'low blood pressure': 'cardiology',
-    'irregular heartbeat': 'cardiology',
-    'swelling in legs': 'cardiology',
+    'chest pain': 'Cardiology',
+    'heart palpitations': 'Cardiology',
+    'shortness of breath': 'Cardiology',
+    'high blood pressure': 'Cardiology',
+    'low blood pressure': 'Cardiology',
+    'irregular heartbeat': 'Cardiology',
+    'swelling in legs': 'Cardiology',
 
     # Neurology
-    'headache': 'neurology',
-    'dizziness': 'neurology',
-    'seizure': 'neurology',
-    'memory loss': 'neurology',
-    'migraine': 'neurology',
-    'numbness': 'neurology',
-    'tingling sensation': 'neurology',
-    'difficulty speaking': 'neurology',
-    'vision problems': 'neurology',
-    'tremors': 'neurology',
+    'headache': 'Neurology',
+    'dizziness': 'Neurology',
+    'seizure': 'Neurology',
+    'memory loss': 'Neurology',
+    'migraine': 'Neurology',
+    'numbness': 'Neurology',
+    'tingling sensation': 'Neurology',
+    'difficulty speaking': 'Neurology',
+    'vision problems': 'Neurology',
+    'tremors': 'Neurology',
 
     # Gastroenterology
-    'stomach pain': 'gastroenterology',
-    'nausea': 'gastroenterology',
-    'vomiting': 'gastroenterology',
-    'diarrhea': 'gastroenterology',
-    'constipation': 'gastroenterology',
-    'bloating': 'gastroenterology',
-    'acid reflux': 'gastroenterology',
-    'blood in stool': 'gastroenterology',
-    'loss of appetite': 'gastroenterology',
+    'stomach pain': 'Gastroenterology',
+    'nausea': 'Gastroenterology',
+    'vomiting': 'Gastroenterology',
+    'diarrhea': 'Gastroenterology',
+    'constipation': 'Gastroenterology',
+    'bloating': 'Gastroenterology',
+    'acid reflux': 'Gastroenterology',
+    'blood in stool': 'Gastroenterology',
+    'loss of appetite': 'Gastroenterology',
 
     # Dermatology
-    'skin rash': 'dermatology',
-    'acne': 'dermatology',
-    'itching': 'dermatology',
-    'skin lesion': 'dermatology',
-    'dry skin': 'dermatology',
-    'eczema': 'dermatology',
-    'psoriasis': 'dermatology',
-    'hair loss': 'dermatology',
-    'nail discoloration': 'dermatology',
+    'skin rash': 'Dermatology',
+    'acne': 'Dermatology',
+    'itching': 'Dermatology',
+    'skin lesion': 'Dermatology',
+    'dry skin': 'Dermatology',
+    'eczema': 'Dermatology',
+    'psoriasis': 'Dermatology',
+    'hair loss': 'Dermatology',
+    'nail discoloration': 'Dermatology',
 
     # Orthopedics
-    'joint pain': 'orthopedics',
-    'back pain': 'orthopedics',
-    'fracture': 'orthopedics',
-    'muscle pain': 'orthopedics',
-    'knee pain': 'orthopedics',
-    'shoulder pain': 'orthopedics',
-    'swollen joints': 'orthopedics',
-    'difficulty walking': 'orthopedics',
+    'joint pain': 'Orthopedics',
+    'back pain': 'Orthopedics',
+    'fracture': 'Orthopedics',
+    'muscle pain': 'Orthopedics',
+    'knee pain': 'Orthopedics',
+    'shoulder pain': 'Orthopedics',
+    'swollen joints': 'Orthopedics',
+    'difficulty walking': 'Orthopedics',
 
     # Pulmonology
-    'chronic cough': 'pulmonology',
-    'wheezing': 'pulmonology',
-    'difficulty breathing': 'pulmonology',
-    'cough with blood': 'pulmonology',
-    'asthma symptoms': 'pulmonology',
+    'chronic cough': 'Pulmonology',
+    'wheezing': 'Pulmonology',
+    'difficulty breathing': 'Pulmonology',
+    'cough with blood': 'Pulmonology',
+    'asthma symptoms': 'Pulmonology',
 
     # Endocrinology
-    'fatigue': 'endocrinology',
-    'weight gain': 'endocrinology',
-    'weight loss': 'endocrinology',
-    'excessive thirst': 'endocrinology',
-    'frequent urination': 'endocrinology',
-    'sweating': 'endocrinology',
-    'heat intolerance': 'endocrinology',
+    'fatigue': 'Endocrinology',
+    'weight gain': 'Endocrinology',
+    'weight loss': 'Endocrinology',
+    'excessive thirst': 'Endocrinology',
+    'frequent urination': 'Endocrinology',
+    'sweating': 'Endocrinology',
+    'heat intolerance': 'Endocrinology',
 
     # Psychiatry
-    'depression': 'psychiatry',
-    'anxiety': 'psychiatry',
-    'insomnia': 'psychiatry',
-    'mood swings': 'psychiatry',
-    'hallucinations': 'psychiatry',
-    'panic attacks': 'psychiatry',
+    'depression': 'Psychiatry',
+    'anxiety': 'Psychiatry',
+    'insomnia': 'Psychiatry',
+    'mood swings': 'Psychiatry',
+    'hallucinations': 'Psychiatry',
+    'panic attacks': 'Psychiatry',
 
     # Ophthalmology
-    'blurred vision': 'ophthalmology',
-    'eye pain': 'ophthalmology',
-    'red eyes': 'ophthalmology',
-    'watery eyes': 'ophthalmology',
-    'double vision': 'ophthalmology',
+    'blurred vision': 'Ophthalmology',
+    'eye pain': 'Ophthalmology',
+    'red eyes': 'Ophthalmology',
+    'watery eyes': 'Ophthalmology',
+    'double vision': 'Ophthalmology',
 
     # ENT
-    'ear pain': 'ent',
-    'hearing loss': 'ent',
-    'sore throat': 'ent',
-    'nasal congestion': 'ent',
-    'runny nose': 'ent',
-    'loss of smell': 'ent',
+    'ear pain': 'ENT',
+    'hearing loss': 'ENT',
+    'sore throat': 'ENT',
+    'nasal congestion': 'ENT',
+    'runny nose': 'ENT',
+    'loss of smell': 'ENT',
 
     # Urology
-    'painful urination': 'urology',
-    'blood in urine': 'urology',
-    'urinary incontinence': 'urology',
-    'frequent urination': 'urology',
-    'difficulty urinating': 'urology',
+    'painful urination': 'Urology',
+    'blood in urine': 'Urology',
+    'urinary incontinence': 'Urology',
+    'frequent urination': 'Urology',
+    'difficulty urinating': 'Urology',
 
     # Gynecology
-    'irregular periods': 'gynecology',
-    'pelvic pain': 'gynecology',
-    'vaginal discharge': 'gynecology',
-    'pain during intercourse': 'gynecology',
-    'pregnancy-related issues': 'gynecology',
+    'irregular periods': 'Gynecology',
+    'pelvic pain': 'Gynecology',
+    'vaginal discharge': 'Gynecology',
+    'pain during intercourse': 'Gynecology',
+    'pregnancy-related issues': 'Gynecology',
 
-    # Pediatrics (for children)
-    'crying excessively': 'pediatrics',
-    'fever in child': 'pediatrics',
-    'rashes in child': 'pediatrics',
-    'delayed milestones': 'pediatrics',
+    # Pediatrics
+    'crying excessively': 'Pediatrics',
+    'fever in child': 'Pediatrics',
+    'rashes in child': 'Pediatrics',
+    'delayed milestones': 'Pediatrics',
 }
+
 
 
 # Symptom keywords for detection
@@ -356,11 +358,30 @@ def analyze_symptoms_for_specialization(symptoms_text):
     else:
         return 'general'
 
-
-#Database Handle(work for Ankush)
 def get_doctors_by_specialization(specialization):
-    """Get doctors from database by specialization"""
-    return DOCTORS_DATABASE.get(specialization, DOCTORS_DATABASE['general'])
+    data = asyncio.run(fetch_doctors_with_user())
+    print(data)
+    ans = []
+
+    print(f"Looking for specialization: {specialization.lower()}")
+
+    for doc in data:
+        specializations = doc.get('Specialization', [])
+        print(f"Doctor: {doc['name']} - Specializations: {specializations}")
+
+        # Lowercase conversion for matching
+        specializations_lower = [spec.lower() for spec in specializations]
+        print(f"Converted Specializations: {specializations_lower}")
+
+        if specialization.lower() in specializations_lower:
+            print(f"Matched Doctor: {doc['name']}")
+            ans.append({
+                "Doctor Name": doc["name"],
+                "Rating": doc["rating"]
+            })
+
+    print("Final matched doctors:", ans)
+    return ans
 
 #Storing data(work for Ankush)
 def store_data_for_past_reports(request_type,data,any_file):
@@ -494,40 +515,18 @@ Please analyze this lab report and answer the user's question. Remember to:
             recommended_doctors = get_doctors_by_specialization(specialization)
             
             # Prepare prompt for symptoms analysis
-            full_prompt = f"""
-User is experiencing these symptoms: {query}
+            full_prompt = f"""User is experiencing these symptoms: {query}
 
-Please respond as a medical assistant. Your goal is to provide **educational and informative** guidance based on the symptoms. DO NOT diagnose or suggest treatments. Format your response using clear bullet points and sections. Here's what to include:
-
-1. General Symptom Overview
-- Briefly explain what the symptoms might generally indicate.
-- Keep it friendly and easy to understand.
-
-2. Possible Common Causes
-- Mention possible general causes (without sounding like a diagnosis).
-- Include both minor and serious causes as possibilities.
-
-3. Triage Assessment
-- Evaluate how urgent the symptoms might be based on general understanding.
-- Output a triage category: `Low urgency`, `Moderate concern`, `High concern`, or `Emergency`.
-
-4. Risk Score
-- Provide a **risk score out of 10** based on severity and urgency.
-- Also give a short label like: `Mild`, `Moderate`, `Serious`, `Very Serious`, `Critical`.
-
-5. Red Flags (When to Seek Immediate Help)
-- List warning signs that indicate the user should consult a doctor immediately.
-
-6. General Self-Care Tips
-- If applicable, share general advice to manage or observe symptoms at home.
-
-7. Final Note
-- Include this disclaimer:
-  > ⚠️ This information is for educational purposes only and does not replace professional medical advice. Always consult a doctor for personal health concerns.
-
-Keep the tone supportive, non-alarming, and never provide a medical conclusion.
-"""
-
+Please provide educational information about these symptoms. Remember to:
+- Explain what these symptoms might indicate in general terms
+- Mention possible common causes (without diagnosing)
+- Suggest when to seek immediate medical attention (red flags)
+- Provide general self-care tips where appropriate
+- Always emphasize that symptoms require professional medical evaluation
+- Never provide specific diagnoses or treatment recommendations
+- Be reassuring while being informative
+- Use bullet points and clear formatting for better readability
+- Include disclaimer about not replacing professional medical advice"""
             
             try:
                 response = ""
@@ -546,7 +545,7 @@ Keep the tone supportive, non-alarming, and never provide a medical conclusion.
                 "query_type": "symptoms",
                 "symptoms": query,
                 "specialization": specialization,
-                "recommended_doctors": recommended_doctors[:3]  # Return top 3 doctors
+                "recommended_doctors": recommended_doctors[:1]  # Return top 3 doctors
             })
         
         # Handle general questions
@@ -705,40 +704,18 @@ def analyze_symptoms():
         recommended_doctors = get_doctors_by_specialization(specialization)
         
         # Prepare prompt for symptoms analysis
-        full_prompt = f"""
-User is experiencing these symptoms: {symptoms}
+        full_prompt = f"""User is experiencing these symptoms: {symptoms}
 
-Please respond as a medical assistant. Your goal is to provide **educational and informative** guidance based on the symptoms. DO NOT diagnose or suggest treatments. Format your response using clear bullet points and sections. Here's what to include:
-
-1. General Symptom Overview
-- Briefly explain what the symptoms might generally indicate.
-- Keep it friendly and easy to understand.
-
-2. Possible Common Causes
-- Mention possible general causes (without sounding like a diagnosis).
-- Include both minor and serious causes as possibilities.
-
-3. Triage Assessment
-- Evaluate how urgent the symptoms might be based on general understanding.
-- Output a triage category: `Low urgency`, `Moderate concern`, `High concern`, or `Emergency`.
-
-4. Risk Score
-- Provide a **risk score out of 10** based on severity and urgency.
-- Also give a short label like: `Mild`, `Moderate`, `Serious`, `Very Serious`, `Critical`.
-
-5. Red Flags (When to Seek Immediate Help)
-- List warning signs that indicate the user should consult a doctor immediately.
-
-6. General Self-Care Tips
-- If applicable, share general advice to manage or observe symptoms at home.
-
-
-- Include this disclaimer:
-  > ⚠️ This information is for educational purposes only and does not replace professional medical advice. Always consult a doctor for personal health concerns.
-
-Keep the tone supportive, non-alarming, and never provide a medical conclusion.
-"""
-
+Please provide educational information about these symptoms. Remember to:
+- Explain what these symptoms might indicate in general terms
+- Mention possible common causes (without diagnosing)
+- Suggest when to seek immediate medical attention (red flags)
+- Provide general self-care tips where appropriate
+- Always emphasize that symptoms require professional medical evaluation
+- Never provide specific diagnoses or treatment recommendations
+- Be reassuring while being informative
+- Use bullet points and clear formatting for better readability
+- Include disclaimer about not replacing professional medical advice"""
         
         try:
             response = ""
@@ -756,7 +733,7 @@ Keep the tone supportive, non-alarming, and never provide a medical conclusion.
             "response": response,
             "symptoms": symptoms,
             "specialization": specialization,
-            "recommended_doctors": recommended_doctors[:3]  # Return top 3 doctors
+            "recommended_doctors": recommended_doctors[:1]  # Return top 3 doctors
         })
     
     except Exception as e:
@@ -802,4 +779,17 @@ def internal_error(e):
     return jsonify({"error": "Internal server error"}), 500
 
 if __name__ == '__main__':
+    print("🏥 Starting Enhanced Medical Assistant Server...")
+    print(f"📁 Max file size: {app.config['MAX_CONTENT_LENGTH'] / (1024*1024)}MB")
+    print(f"⏰ Session timeout: {SESSION_TIMEOUT_MINUTES} minutes")
+    print("🔗 Available endpoints:")
+    print("   - POST /upload - Upload PDF lab reports")
+    print("   - POST /smart_query - Smart query handler (auto-detects intent)")
+    print("   - POST /ask - Ask questions about uploaded reports")
+    print("   - POST /ask_general - Ask general medical questions")
+    print("   - POST /symptoms - Analyze symptoms and get doctor recommendations")
+    print("   - GET /health - Health check")
+    print("🚀 Server starting on http://localhost:5000")
+
     app.run(debug=True, host='0.0.0.0', port=5000)
+    # app.run(debug=True, host='0.0.0.0', port=5000)

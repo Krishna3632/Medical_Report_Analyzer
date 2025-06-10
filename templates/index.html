@@ -1,4 +1,4 @@
-<html lang="en">
+ <html lang="en">
  <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1" name="viewport"/>
@@ -604,61 +604,69 @@
         setLoading(false);
       }
     }
+function addDoctorRecommendations(doctors, specialization) {
+  const chatContainer = document.getElementById('chatContainer');
+  const container = document.createElement('div');
+  container.className = 'mb-8 max-w-3xl mx-auto select-text';
 
-    function addDoctorRecommendations(doctors, specialization) {
-      const chatContainer = document.getElementById('chatContainer');
-      const container = document.createElement('div');
-      container.className = 'mb-8 max-w-3xl mx-auto select-text';
+  // Heading for specialization
+  const heading = document.createElement('h4');
+  heading.className = 'font-extrabold text-purple-800 mb-6 flex items-center gap-3 text-xl';
+  heading.innerHTML = `<i class="fas fa-user-md text-purple-600"></i> Recommended Doctors (${specialization.charAt(0).toUpperCase() + specialization.slice(1)})`;
+  container.appendChild(heading);
 
-      const heading = document.createElement('h4');
-      heading.className = 'font-extrabold text-purple-800 mb-6 flex items-center gap-3 text-xl';
-      heading.innerHTML = `<i class="fas fa-user-md text-purple-600"></i> Recommended Doctors (${specialization.charAt(0).toUpperCase() + specialization.slice(1)})`;
-      container.appendChild(heading);
+  // Check if any doctors were returned
+  if (doctors.length === 0) {
+    const noDoctorMsg = document.createElement('p');
+    noDoctorMsg.className = 'text-gray-600';
+    noDoctorMsg.textContent = 'No doctors found for this specialization.';
+    container.appendChild(noDoctorMsg);
+  } else {
+    doctors.forEach(doctor => {
+      const card = document.createElement('div');
+      card.className = 'doctor-card mb-4 p-4 border rounded shadow';
 
-      doctors.forEach(doctor => {
-        const card = document.createElement('div');
-        card.className = 'doctor-card';
-
-        const info = document.createElement('div');
-        info.className = 'doctor-info';
-        info.innerHTML = `
-          <div class="doctor-name">${doctor.name}</div>
-          <div class="doctor-specialization">${doctor.specialization}</div>
-          <div class="doctor-location">${doctor.location}</div>
-        `;
-
-        const rating = document.createElement('div');
-        rating.className = 'doctor-rating';
-        const fullStars = Math.floor(doctor.rating);
-        const halfStar = doctor.rating - fullStars >= 0.5;
-        let starsHtml = '';
-        for(let i=0; i<fullStars; i++) {
-          starsHtml += '<i class="fas fa-star doctor-rating-stars"></i>';
-        }
-        if(halfStar) {
-          starsHtml += '<i class="fas fa-star-half-alt doctor-rating-stars"></i>';
-        }
-        const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-        for(let i=0; i<emptyStars; i++) {
-          starsHtml += '<i class="far fa-star doctor-rating-stars" style="color:#d8b4fe;"></i>';
-        }
-        rating.innerHTML = `${starsHtml} <span aria-label="Rating: ${doctor.rating.toFixed(1)} stars">${doctor.rating.toFixed(1)}</span>`;
-
-        card.appendChild(info);
-        card.appendChild(rating);
-        container.appendChild(card);
-      });
-
-      // Wrap container in a message bubble with system styling
-      const messageDiv = document.createElement('div');
-      messageDiv.className = 'flex items-start gap-4 max-w-3xl mx-auto';
-      messageDiv.innerHTML = `
-        <div class="w-12 h-12 bg-purple-700 rounded-full flex items-center justify-center text-white text-2xl select-none shadow-lg" aria-hidden="true">💡</div>
+      const info = document.createElement('div');
+      info.className = 'doctor-info mb-2';
+      info.innerHTML = `
+        <div class="doctor-name font-semibold text-lg">${doctor["Doctor Name"] || 'Unknown'}</div>
+        <div class="doctor-specialization text-sm text-gray-600">${specialization}</div>
       `;
-      messageDiv.appendChild(container);
-      chatContainer.appendChild(messageDiv);
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
+
+      const rating = document.createElement('div');
+      rating.className = 'doctor-rating flex items-center';
+      const fullStars = Math.floor(doctor["Rating"]);
+      const halfStar = doctor["Rating"] - fullStars >= 0.5;
+      let starsHtml = '';
+      for(let i = 0; i < fullStars; i++) {
+        starsHtml += '<i class="fas fa-star text-yellow-500 mr-1"></i>';
+      }
+      if(halfStar) {
+        starsHtml += '<i class="fas fa-star-half-alt text-yellow-500 mr-1"></i>';
+      }
+      const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+      for(let i = 0; i < emptyStars; i++) {
+        starsHtml += '<i class="far fa-star text-gray-300 mr-1"></i>';
+      }
+      rating.innerHTML = `${starsHtml} <span class="ml-2 text-sm text-gray-700">(${doctor["Rating"].toFixed(1)} stars)</span>`;
+
+      card.appendChild(info);
+      card.appendChild(rating);
+      container.appendChild(card);
+    });
+  }
+
+  // Wrap container in a message bubble with system styling
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'flex items-start gap-4 max-w-3xl mx-auto';
+  messageDiv.innerHTML = `
+    <div class="w-12 h-12 bg-purple-700 rounded-full flex items-center justify-center text-white text-2xl select-none shadow-lg" aria-hidden="true">💡</div>
+  `;
+  messageDiv.appendChild(container);
+  chatContainer.appendChild(messageDiv);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
 
     function addMessage(sender, content, messageType = null) {
       const chatContainer = document.getElementById('chatContainer');
