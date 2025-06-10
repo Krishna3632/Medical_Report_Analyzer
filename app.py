@@ -494,18 +494,40 @@ Please analyze this lab report and answer the user's question. Remember to:
             recommended_doctors = get_doctors_by_specialization(specialization)
             
             # Prepare prompt for symptoms analysis
-            full_prompt = f"""User is experiencing these symptoms: {query}
+            full_prompt = f"""
+User is experiencing these symptoms: {query}
 
-Please provide educational information about these symptoms. Remember to:
-- Explain what these symptoms might indicate in general terms
-- Mention possible common causes (without diagnosing)
-- Suggest when to seek immediate medical attention (red flags)
-- Provide general self-care tips where appropriate
-- Always emphasize that symptoms require professional medical evaluation
-- Never provide specific diagnoses or treatment recommendations
-- Be reassuring while being informative
-- Use bullet points and clear formatting for better readability
-- Include disclaimer about not replacing professional medical advice"""
+Please respond as a medical assistant. Your goal is to provide **educational and informative** guidance based on the symptoms. DO NOT diagnose or suggest treatments. Format your response using clear bullet points and sections. Here's what to include:
+
+1. General Symptom Overview
+- Briefly explain what the symptoms might generally indicate.
+- Keep it friendly and easy to understand.
+
+2. Possible Common Causes
+- Mention possible general causes (without sounding like a diagnosis).
+- Include both minor and serious causes as possibilities.
+
+3. Triage Assessment
+- Evaluate how urgent the symptoms might be based on general understanding.
+- Output a triage category: `Low urgency`, `Moderate concern`, `High concern`, or `Emergency`.
+
+4. Risk Score
+- Provide a **risk score out of 10** based on severity and urgency.
+- Also give a short label like: `Mild`, `Moderate`, `Serious`, `Very Serious`, `Critical`.
+
+5. Red Flags (When to Seek Immediate Help)
+- List warning signs that indicate the user should consult a doctor immediately.
+
+6. General Self-Care Tips
+- If applicable, share general advice to manage or observe symptoms at home.
+
+7. Final Note
+- Include this disclaimer:
+  > ⚠️ This information is for educational purposes only and does not replace professional medical advice. Always consult a doctor for personal health concerns.
+
+Keep the tone supportive, non-alarming, and never provide a medical conclusion.
+"""
+
             
             try:
                 response = ""
@@ -683,18 +705,40 @@ def analyze_symptoms():
         recommended_doctors = get_doctors_by_specialization(specialization)
         
         # Prepare prompt for symptoms analysis
-        full_prompt = f"""User is experiencing these symptoms: {symptoms}
+        full_prompt = f"""
+User is experiencing these symptoms: {symptoms}
 
-Please provide educational information about these symptoms. Remember to:
-- Explain what these symptoms might indicate in general terms
-- Mention possible common causes (without diagnosing)
-- Suggest when to seek immediate medical attention (red flags)
-- Provide general self-care tips where appropriate
-- Always emphasize that symptoms require professional medical evaluation
-- Never provide specific diagnoses or treatment recommendations
-- Be reassuring while being informative
-- Use bullet points and clear formatting for better readability
-- Include disclaimer about not replacing professional medical advice"""
+Please respond as a medical assistant. Your goal is to provide **educational and informative** guidance based on the symptoms. DO NOT diagnose or suggest treatments. Format your response using clear bullet points and sections. Here's what to include:
+
+1. General Symptom Overview
+- Briefly explain what the symptoms might generally indicate.
+- Keep it friendly and easy to understand.
+
+2. Possible Common Causes
+- Mention possible general causes (without sounding like a diagnosis).
+- Include both minor and serious causes as possibilities.
+
+3. Triage Assessment
+- Evaluate how urgent the symptoms might be based on general understanding.
+- Output a triage category: `Low urgency`, `Moderate concern`, `High concern`, or `Emergency`.
+
+4. Risk Score
+- Provide a **risk score out of 10** based on severity and urgency.
+- Also give a short label like: `Mild`, `Moderate`, `Serious`, `Very Serious`, `Critical`.
+
+5. Red Flags (When to Seek Immediate Help)
+- List warning signs that indicate the user should consult a doctor immediately.
+
+6. General Self-Care Tips
+- If applicable, share general advice to manage or observe symptoms at home.
+
+
+- Include this disclaimer:
+  > ⚠️ This information is for educational purposes only and does not replace professional medical advice. Always consult a doctor for personal health concerns.
+
+Keep the tone supportive, non-alarming, and never provide a medical conclusion.
+"""
+
         
         try:
             response = ""
@@ -758,15 +802,4 @@ def internal_error(e):
     return jsonify({"error": "Internal server error"}), 500
 
 if __name__ == '__main__':
-    print("🏥 Starting Enhanced Medical Assistant Server...")
-    print(f"📁 Max file size: {app.config['MAX_CONTENT_LENGTH'] / (1024*1024)}MB")
-    print(f"⏰ Session timeout: {SESSION_TIMEOUT_MINUTES} minutes")
-    print("🔗 Available endpoints:")
-    print("   - POST /upload - Upload PDF lab reports")
-    print("   - POST /smart_query - Smart query handler (auto-detects intent)")
-    print("   - POST /ask - Ask questions about uploaded reports")
-    print("   - POST /ask_general - Ask general medical questions")
-    print("   - POST /symptoms - Analyze symptoms and get doctor recommendations")
-    print("   - GET /health - Health check")
-    print("🚀 Server starting on http://localhost:5000")
     app.run(debug=True, host='0.0.0.0', port=5000)
